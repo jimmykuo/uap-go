@@ -24,6 +24,10 @@ So a quicker way to test data race on the main `*parser.Parse` method can be:
 
     $ go test -race -run=Concurrency  # filter to execute `TestGenericParseMethodConcurrency` only
 
+## Add more devices
+
+  Edit `custom.yaml` and just run `build.sh` script to generate yaml.go again
+
 ## Benching
 
 If needed, you can run benchmark on your latest feature to be compared (using `benchcmp`) against the current performance
