@@ -29,8 +29,6 @@ func BenchmarkParser(b *testing.B) {
 }
 
 func BenchmarkParserWithOptions(b *testing.B) {
-
-	benchedParser.setMode((EDeviceLookUpMode))
 	for i := 0; i < b.N; i++ {
 		for _, ua := range uas {
 			benchedParserWithOptions.Parse(ua)

@@ -227,10 +227,6 @@ func NewFromBytes(data []byte) (*Parser, error) {
 	return parser, nil
 }
 
-func (parser *Parser) setMode(mode int) {
-	parser.Mode = mode
-}
-
 func (parser *Parser) Parse(line string) *Client {
 	cli := new(Client)
 	var wg sync.WaitGroup
