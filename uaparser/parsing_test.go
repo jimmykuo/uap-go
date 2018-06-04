@@ -87,7 +87,7 @@ func TestDeviceParsing(t *testing.T) {
 	}
 }
 
-func TestParser_TWM(t *testing.T) {
+func TestParser_Custom(t *testing.T) {
 
 	testSavedParser := NewFromSaved()
 
@@ -104,6 +104,14 @@ func TestParser_TWM(t *testing.T) {
 				Family: "TWM Amazing A8",
 				Brand:  "TWM",
 				Model:  "Amazing A8",
+			},
+		}, {
+			name:  "",
+			input: "Mozilla/5.0 (Linux; Android 4.4; InFocus M2_3G Build/KOT49H) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36",
+			want: &Device{
+				Family: "InFocus M2_3G",
+				Brand:  "InFocus",
+				Model:  "M2_3G",
 			},
 		},
 	}

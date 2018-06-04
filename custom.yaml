@@ -8,3 +8,12 @@
     brand_replacement: 'TWM'
     model_replacement: '$1'
 
+  #########
+  # InFocus
+  #########
+  - regex: 'Android[\- ][\d]+(?:\.[\d]+){1,2}(?:;.*)?; *InFocus (.+?) Build[/ ]'
+    regex_flag: 'i'
+    device_replacement: 'InFocus $1'
+    brand_replacement: 'InFocus'
+    model_replacement: '$1'
+
