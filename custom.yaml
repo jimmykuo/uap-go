@@ -1,0 +1,10 @@
+
+  #########
+  # TWM
+  #########
+  - regex: 'Android[\- ][\d]+(?:\.[\d]+){1,2}(?:;.*)?; *(Amazing.+?) Build[/ ]'
+    regex_flag: 'i'
+    device_replacement: 'TWM $1'
+    brand_replacement: 'TWM'
+    model_replacement: '$1'
+
