@@ -3,6 +3,7 @@ package uaparser
 import (
 	"io/ioutil"
 	"log"
+	"reflect"
 	"testing"
 
 	"gopkg.in/yaml.v2"
@@ -80,9 +81,38 @@ func TestDeviceParsing(t *testing.T) {
 		for _, c := range YAMLTestCases.Cases {
 			actual := testParser.ParseDevice(c.Input)
 			if got, want := *actual, c.Expected; got != want {
-				t.Fatalf("got %#v\n want %#v\n", got, want)
+				t.Fatalf("ua: %s, got %#v\n want %#v\n", c.Input, got, want)
 			}
 		}
+	}
+}
+
+func TestParser_TWM(t *testing.T) {
+
+	testSavedParser := NewFromSaved()
+
+	tests := []struct {
+		name  string
+		input string
+		want  *Device
+	}{
+		// TODO: Add test cases.
+		{
+			name:  "TWM A8",
+			input: "Mozilla/5.0 (Linux; Android 4.4; Amazing A8 Build/KOT49H) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/44.0.2403.133 Mobile Safari/537.36",
+			want: &Device{
+				Family: "TWM Amazing A8",
+				Brand:  "TWM",
+				Model:  "Amazing A8",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := testSavedParser.ParseDevice(tt.input); !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("ua: %s, got %#v\n want %#v\n", tt.input, got, tt.want)
+			}
+		})
 	}
 }
 

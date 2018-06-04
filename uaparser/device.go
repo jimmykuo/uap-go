@@ -1,6 +1,8 @@
 package uaparser
 
-import "strings"
+import (
+	"strings"
+)
 
 type Device struct {
 	Family string
@@ -9,20 +11,12 @@ type Device struct {
 }
 
 func (parser *deviceParser) Match(line string, dvc *Device) {
-	matches := parser.Reg.FindStringSubmatchIndex(line)
-
-	if len(matches) == 0 {
-		return
+	m := parser.Reg.MatcherString(line, 0)
+	if m.Matches() {
+		dvc.Family = strings.TrimSpace(expandString(parser.DeviceReplacement, m))
+		dvc.Brand = strings.TrimSpace(expandString(parser.BrandReplacement, m))
+		dvc.Model = strings.TrimSpace(expandString(parser.ModelReplacement, m))
 	}
-
-	dvc.Family = string(parser.Reg.ExpandString(nil, parser.DeviceReplacement, line, matches))
-	dvc.Family = strings.TrimSpace(dvc.Family)
-
-	dvc.Brand = string(parser.Reg.ExpandString(nil, parser.BrandReplacement, line, matches))
-	dvc.Brand = strings.TrimSpace(dvc.Brand)
-
-	dvc.Model = string(parser.Reg.ExpandString(nil, parser.ModelReplacement, line, matches))
-	dvc.Model = strings.TrimSpace(dvc.Model)
 }
 
 func (dvc *Device) ToString() string {

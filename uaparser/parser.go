@@ -3,12 +3,13 @@ package uaparser
 import (
 	"fmt"
 	"io/ioutil"
-	"regexp"
+	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
-	"sort"
 	"time"
 
+	"github.com/glenn-brown/golang-pkg-pcre/src/pkg/pcre"
 	"gopkg.in/yaml.v2"
 )
 
@@ -20,12 +21,16 @@ type RegexesDefinitions struct {
 }
 
 type UserAgentSorter []*uaParser
-func (a UserAgentSorter) Len() int           { return len(a) }
-func (a UserAgentSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a UserAgentSorter) Less(i, j int) bool { return atomic.LoadUint64(&a[i].MatchesCount) > atomic.LoadUint64(&a[j].MatchesCount) }
+
+func (a UserAgentSorter) Len() int      { return len(a) }
+func (a UserAgentSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a UserAgentSorter) Less(i, j int) bool {
+	return atomic.LoadUint64(&a[i].MatchesCount) > atomic.LoadUint64(&a[j].MatchesCount)
+}
 
 type uaParser struct {
-	Reg               *regexp.Regexp
+	// Reg               *regexp.Regexp
+	Reg               pcre.Regexp
 	Expr              string `yaml:"regex"`
 	Flags             string `yaml:"regex_flag"`
 	FamilyReplacement string `yaml:"family_replacement"`
@@ -51,12 +56,16 @@ func (ua *uaParser) setDefaults() {
 }
 
 type OsSorter []*osParser
-func (a OsSorter) Len() int           { return len(a) }
-func (a OsSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a OsSorter) Less(i, j int) bool { return atomic.LoadUint64(&a[i].MatchesCount) > atomic.LoadUint64(&a[j].MatchesCount) }
+
+func (a OsSorter) Len() int      { return len(a) }
+func (a OsSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a OsSorter) Less(i, j int) bool {
+	return atomic.LoadUint64(&a[i].MatchesCount) > atomic.LoadUint64(&a[j].MatchesCount)
+}
 
 type osParser struct {
-	Reg           *regexp.Regexp
+	// Reg           *regexp.Regexp
+	Reg           pcre.Regexp
 	Expr          string `yaml:"regex"`
 	Flags         string `yaml:"regex_flag"`
 	OSReplacement string `yaml:"os_replacement"`
@@ -86,12 +95,16 @@ func (os *osParser) setDefaults() {
 }
 
 type DeviceSorter []*deviceParser
-func (a DeviceSorter) Len() int           { return len(a) }
-func (a DeviceSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a DeviceSorter) Less(i, j int) bool { return atomic.LoadUint64(&a[i].MatchesCount) > atomic.LoadUint64(&a[j].MatchesCount) }
+
+func (a DeviceSorter) Len() int      { return len(a) }
+func (a DeviceSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a DeviceSorter) Less(i, j int) bool {
+	return atomic.LoadUint64(&a[i].MatchesCount) > atomic.LoadUint64(&a[j].MatchesCount)
+}
 
 type deviceParser struct {
-	Reg               *regexp.Regexp
+	// Reg               *regexp.Regexp
+	Reg               pcre.Regexp
 	Expr              string `yaml:"regex"`
 	Flags             string `yaml:"regex_flag"`
 	DeviceReplacement string `yaml:"device_replacement"`
@@ -117,28 +130,27 @@ type Client struct {
 
 type Parser struct {
 	RegexesDefinitions
-	UserAgentMisses   uint64
-	OsMisses          uint64
-	DeviceMisses      uint64
-	Mode              int
-	UseSort           bool
-	debugMode         bool
+	UserAgentMisses uint64
+	OsMisses        uint64
+	DeviceMisses    uint64
+	Mode            int
+	UseSort         bool
+	debugMode       bool
 }
 
-
 const (
-	EOsLookUpMode		= 1	/* 00000001 */
-	EUserAgentLookUpMode	= 2	/* 00000010 */
-	EDeviceLookUpMode	= 4	/* 00000100 */
-	cMinMissesTreshold	= 100000
-	cDefaultMissesTreshold	= 500000
-	cDefaultMatchIdxNotOk	= 20
-	cDefaultSortOption	= false
+	EOsLookUpMode          = 1 /* 00000001 */
+	EUserAgentLookUpMode   = 2 /* 00000010 */
+	EDeviceLookUpMode      = 4 /* 00000100 */
+	cMinMissesTreshold     = 100000
+	cDefaultMissesTreshold = 500000
+	cDefaultMatchIdxNotOk  = 20
+	cDefaultSortOption     = false
 )
 
 var (
-	missesTreshold		= uint64(500000)
-	matchIdxNotOk		= 20
+	missesTreshold = uint64(500000)
+	matchIdxNotOk  = 20
 )
 
 func (parser *Parser) mustCompile() { // until we can use yaml.UnmarshalYAML with embedded pointer struct
@@ -150,6 +162,8 @@ func (parser *Parser) mustCompile() { // until we can use yaml.UnmarshalYAML wit
 		p.Reg = compileRegex(p.Flags, p.Expr)
 		p.setDefaults()
 	}
+
+	// fmt.Printf("parser.Devices: %d\n", len(parser.Device))
 	for _, p := range parser.Device {
 		p.Reg = compileRegex(p.Flags, p.Expr)
 		p.setDefaults()
@@ -207,39 +221,46 @@ func NewFromBytes(data []byte) (*Parser, error) {
 		return nil, err
 	}
 
-	parser := &Parser{definitions, 0, 0, 0, (EOsLookUpMode|EUserAgentLookUpMode|EDeviceLookUpMode), false, false}
+	parser := &Parser{definitions, 0, 0, 0, (EOsLookUpMode | EUserAgentLookUpMode | EDeviceLookUpMode), false, false}
 	parser.mustCompile()
 
 	return parser, nil
 }
 
+func (parser *Parser) setMode(mode int) {
+	parser.Mode = mode
+}
+
 func (parser *Parser) Parse(line string) *Client {
 	cli := new(Client)
 	var wg sync.WaitGroup
-	if EUserAgentLookUpMode & parser.Mode == EUserAgentLookUpMode {
+	if EUserAgentLookUpMode&parser.Mode == EUserAgentLookUpMode {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			parser.RLock()
 			cli.UserAgent = parser.ParseUserAgent(line)
+			// fmt.Println(cli.UserAgent)
 			parser.RUnlock()
 		}()
 	}
-	if EOsLookUpMode & parser.Mode == EOsLookUpMode {
+	if EOsLookUpMode&parser.Mode == EOsLookUpMode {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			parser.RLock()
 			cli.Os = parser.ParseOs(line)
+			// fmt.Println(cli.Os)
 			parser.RUnlock()
 		}()
 	}
-	if EDeviceLookUpMode & parser.Mode == EDeviceLookUpMode {
+	if EDeviceLookUpMode&parser.Mode == EDeviceLookUpMode {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			parser.RLock()
 			cli.Device = parser.ParseDevice(line)
+			// fmt.Println(cli.Device)
 			parser.RUnlock()
 		}()
 	}
@@ -266,7 +287,7 @@ func (parser *Parser) ParseUserAgent(line string) *UserAgent {
 	if !found {
 		ua.Family = "Other"
 	}
-	if(foundIdx > matchIdxNotOk) {
+	if foundIdx > matchIdxNotOk {
 		atomic.AddUint64(&parser.UserAgentMisses, 1)
 	}
 	return ua
@@ -288,7 +309,7 @@ func (parser *Parser) ParseOs(line string) *Os {
 	if !found {
 		os.Family = "Other"
 	}
-	if(foundIdx > matchIdxNotOk) {
+	if foundIdx > matchIdxNotOk {
 		atomic.AddUint64(&parser.OsMisses, 1)
 	}
 	return os
@@ -310,7 +331,7 @@ func (parser *Parser) ParseDevice(line string) *Device {
 	if !found {
 		dvc.Family = "Other"
 	}
-	if(foundIdx > matchIdxNotOk) {
+	if foundIdx > matchIdxNotOk {
 		atomic.AddUint64(&parser.DeviceMisses, 1)
 	}
 	return dvc
@@ -318,38 +339,67 @@ func (parser *Parser) ParseDevice(line string) *Device {
 
 func checkAndSort(parser *Parser) {
 	parser.Lock()
-	if(atomic.LoadUint64(&parser.UserAgentMisses) >= missesTreshold) {
+	if atomic.LoadUint64(&parser.UserAgentMisses) >= missesTreshold {
 		if parser.debugMode {
-			fmt.Printf("%s\tSorting UserAgents slice\n", time.Now());
+			fmt.Printf("%s\tSorting UserAgents slice\n", time.Now())
 		}
 		parser.UserAgentMisses = 0
-		sort.Sort(UserAgentSorter(parser.UA));
+		sort.Sort(UserAgentSorter(parser.UA))
 	}
 	parser.Unlock()
 	parser.Lock()
-	if(atomic.LoadUint64(&parser.OsMisses) >= missesTreshold) {
+	if atomic.LoadUint64(&parser.OsMisses) >= missesTreshold {
 		if parser.debugMode {
-			fmt.Printf("%s\tSorting OS slice\n", time.Now());
+			fmt.Printf("%s\tSorting OS slice\n", time.Now())
 		}
 		parser.OsMisses = 0
-		sort.Sort(OsSorter(parser.OS));
+		sort.Sort(OsSorter(parser.OS))
 	}
 	parser.Unlock()
 	parser.Lock()
-	if(atomic.LoadUint64(&parser.DeviceMisses) >= missesTreshold) {
+	if atomic.LoadUint64(&parser.DeviceMisses) >= missesTreshold {
 		if parser.debugMode {
-			fmt.Printf("%s\tSorting Device slice\n", time.Now());
+			fmt.Printf("%s\tSorting Device slice\n", time.Now())
 		}
 		parser.DeviceMisses = 0
-		sort.Sort(DeviceSorter(parser.Device));
+		sort.Sort(DeviceSorter(parser.Device))
 	}
 	parser.Unlock()
 }
 
-func compileRegex(flags, expr string) *regexp.Regexp {
+// func compileRegex(flags, expr string) *regexp.Regexp {
+// 	if flags == "" {
+// 		return regexp.MustCompile(expr)
+// 	} else {
+// 		return regexp.MustCompile(fmt.Sprintf("(?%s)%s", flags, expr))
+
+// 	}
+// }
+
+func compileRegex(flags, expr string) pcre.Regexp {
 	if flags == "" {
-		return regexp.MustCompile(expr)
+		return pcre.MustCompile(expr, 0)
 	} else {
-		return regexp.MustCompile(fmt.Sprintf("(?%s)%s", flags, expr))
+		return pcre.MustCompile(fmt.Sprintf("(?%s)%s", flags, expr), 0)
 	}
+}
+
+// expandString to replace $1/$2... to string
+func expandString(template string, m *pcre.Matcher) (result string) {
+
+	result = template
+	maxReplaceTokens := 5 // eg $1 $2 $3...
+
+	if !m.Matches() {
+		return
+	}
+
+	for i := maxReplaceTokens; i >= 1; i-- {
+		token := ""
+		if i <= m.Groups() {
+			token = m.GroupString(i)
+		}
+		result = strings.Replace(result, fmt.Sprintf("$%d", i), token, -1)
+	}
+	return
 }

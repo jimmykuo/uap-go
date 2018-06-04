@@ -1,5 +1,7 @@
 package uaparser
 
+import "strings"
+
 type UserAgent struct {
 	Family string
 	Major  string
@@ -8,12 +10,12 @@ type UserAgent struct {
 }
 
 func (parser *uaParser) Match(line string, ua *UserAgent) {
-	matches := parser.Reg.FindStringSubmatchIndex(line)
-	if len(matches) > 0 {
-		ua.Family = string(parser.Reg.ExpandString(nil, parser.FamilyReplacement, line, matches))
-		ua.Major = string(parser.Reg.ExpandString(nil, parser.V1Replacement, line, matches))
-		ua.Minor = string(parser.Reg.ExpandString(nil, parser.V2Replacement, line, matches))
-		ua.Patch = string(parser.Reg.ExpandString(nil, parser.V3Replacement, line, matches))
+	m := parser.Reg.MatcherString(line, 0)
+	if m.Matches() {
+		ua.Family = strings.TrimSpace(expandString(parser.FamilyReplacement, m))
+		ua.Major = strings.TrimSpace(expandString(parser.V1Replacement, m))
+		ua.Minor = strings.TrimSpace(expandString(parser.V2Replacement, m))
+		ua.Patch = strings.TrimSpace(expandString(parser.V3Replacement, m))
 	}
 }
 
