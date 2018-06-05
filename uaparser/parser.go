@@ -3,13 +3,12 @@ package uaparser
 import (
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"sort"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/glenn-brown/golang-pkg-pcre/src/pkg/pcre"
 	"gopkg.in/yaml.v2"
 )
 
@@ -29,8 +28,7 @@ func (a UserAgentSorter) Less(i, j int) bool {
 }
 
 type uaParser struct {
-	// Reg               *regexp.Regexp
-	Reg               pcre.Regexp
+	Reg               *regexp.Regexp
 	Expr              string `yaml:"regex"`
 	Flags             string `yaml:"regex_flag"`
 	FamilyReplacement string `yaml:"family_replacement"`
@@ -64,8 +62,7 @@ func (a OsSorter) Less(i, j int) bool {
 }
 
 type osParser struct {
-	// Reg           *regexp.Regexp
-	Reg           pcre.Regexp
+	Reg           *regexp.Regexp
 	Expr          string `yaml:"regex"`
 	Flags         string `yaml:"regex_flag"`
 	OSReplacement string `yaml:"os_replacement"`
@@ -103,8 +100,7 @@ func (a DeviceSorter) Less(i, j int) bool {
 }
 
 type deviceParser struct {
-	// Reg               *regexp.Regexp
-	Reg               pcre.Regexp
+	Reg               *regexp.Regexp
 	Expr              string `yaml:"regex"`
 	Flags             string `yaml:"regex_flag"`
 	DeviceReplacement string `yaml:"device_replacement"`
@@ -145,7 +141,6 @@ const (
 	cMinMissesTreshold     = 100000
 	cDefaultMissesTreshold = 500000
 	cDefaultMatchIdxNotOk  = 20
-	cDefaultSortOption     = false
 )
 
 var (
@@ -162,8 +157,6 @@ func (parser *Parser) mustCompile() { // until we can use yaml.UnmarshalYAML wit
 		p.Reg = compileRegex(p.Flags, p.Expr)
 		p.setDefaults()
 	}
-
-	// fmt.Printf("parser.Devices: %d\n", len(parser.Device))
 	for _, p := range parser.Device {
 		p.Reg = compileRegex(p.Flags, p.Expr)
 		p.setDefaults()
@@ -236,7 +229,6 @@ func (parser *Parser) Parse(line string) *Client {
 			defer wg.Done()
 			parser.RLock()
 			cli.UserAgent = parser.ParseUserAgent(line)
-			// fmt.Println(cli.UserAgent)
 			parser.RUnlock()
 		}()
 	}
@@ -246,7 +238,6 @@ func (parser *Parser) Parse(line string) *Client {
 			defer wg.Done()
 			parser.RLock()
 			cli.Os = parser.ParseOs(line)
-			// fmt.Println(cli.Os)
 			parser.RUnlock()
 		}()
 	}
@@ -256,12 +247,11 @@ func (parser *Parser) Parse(line string) *Client {
 			defer wg.Done()
 			parser.RLock()
 			cli.Device = parser.ParseDevice(line)
-			// fmt.Println(cli.Device)
 			parser.RUnlock()
 		}()
 	}
 	wg.Wait()
-	if parser.UseSort == true {
+	if parser.UseSort {
 		checkAndSort(parser)
 	}
 	return cli
@@ -363,39 +353,10 @@ func checkAndSort(parser *Parser) {
 	parser.Unlock()
 }
 
-// func compileRegex(flags, expr string) *regexp.Regexp {
-// 	if flags == "" {
-// 		return regexp.MustCompile(expr)
-// 	} else {
-// 		return regexp.MustCompile(fmt.Sprintf("(?%s)%s", flags, expr))
-
-// 	}
-// }
-
-func compileRegex(flags, expr string) pcre.Regexp {
+func compileRegex(flags, expr string) *regexp.Regexp {
 	if flags == "" {
-		return pcre.MustCompile(expr, 0)
+		return regexp.MustCompile(expr)
 	} else {
-		return pcre.MustCompile(fmt.Sprintf("(?%s)%s", flags, expr), 0)
+		return regexp.MustCompile(fmt.Sprintf("(?%s)%s", flags, expr))
 	}
-}
-
-// expandString to replace $1/$2... to string
-func expandString(template string, m *pcre.Matcher) (result string) {
-
-	result = template
-	maxReplaceTokens := 5 // eg $1 $2 $3...
-
-	if !m.Matches() {
-		return
-	}
-
-	for i := maxReplaceTokens; i >= 1; i-- {
-		token := ""
-		if i <= m.Groups() {
-			token = m.GroupString(i)
-		}
-		result = strings.Replace(result, fmt.Sprintf("$%d", i), token, -1)
-	}
-	return
 }

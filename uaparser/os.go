@@ -9,13 +9,13 @@ type Os struct {
 }
 
 func (parser *osParser) Match(line string, os *Os) {
-	m := parser.Reg.MatcherString(line, 0)
-	if m.Matches() {
-		os.Family = expandString(parser.OSReplacement, m)
-		os.Major = expandString(parser.V1Replacement, m)
-		os.Minor = expandString(parser.V2Replacement, m)
-		os.Patch = expandString(parser.V3Replacement, m)
-		os.PatchMinor = expandString(parser.V4Replacement, m)
+	matches := parser.Reg.FindStringSubmatchIndex(line)
+	if len(matches) > 0 {
+		os.Family = string(parser.Reg.ExpandString(nil, parser.OSReplacement, line, matches))
+		os.Major = string(parser.Reg.ExpandString(nil, parser.V1Replacement, line, matches))
+		os.Minor = string(parser.Reg.ExpandString(nil, parser.V2Replacement, line, matches))
+		os.Patch = string(parser.Reg.ExpandString(nil, parser.V3Replacement, line, matches))
+		os.PatchMinor = string(parser.Reg.ExpandString(nil, parser.V4Replacement, line, matches))
 	}
 }
 
