@@ -106,12 +106,36 @@ func TestParser_Custom(t *testing.T) {
 				Model:  "Amazing A8",
 			},
 		}, {
-			name:  "",
+			name:  "InFocus",
 			input: "Mozilla/5.0 (Linux; Android 4.4; InFocus M2_3G Build/KOT49H) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36",
 			want: &Device{
 				Family: "InFocus M2_3G",
 				Brand:  "InFocus",
 				Model:  "M2_3G",
+			},
+		}, {
+			name:  "MIX",
+			input: "Mozilla/5.0 (Linux; U; Android 6.0.1; zh-cn; MIX Build/MXB48T) AppleWebKit/537.36 (KHTML, like Gecko)Version/4.0 Chrome/37.0.0.0 MQQBrowser/7.9 Mobile Safari/537.36",
+			want: &Device{
+				Family: "XiaoMi",
+				Brand:  "XiaoMi",
+				Model:  "MIX",
+			},
+		}, {
+			name:  "MI",
+			input: "Mozilla/5.0 (Linux; U; Android 6.0.1; zh-cn; MI 4LTE Build/MMB29M) AppleWebKit/537.36 (KHTML, like Gecko)Version/4.0 Chrome/37.0.0.0 MQQBrowser/7.2 Mobile Safari/537.36",
+			want: &Device{
+				Family: "XiaoMi MI 4LTE",
+				Brand:  "XiaoMi",
+				Model:  "MI 4LTE",
+			},
+		}, {
+			name:  "XiaoMi",
+			input: "Mozilla/5.0 (Linux; U; Android 5.1.1; zh-cn; MI 4S Build/LMY47V) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/53.0.2785.146 Mobile Safari/537.36 XiaoMi/MiuiBrowser/9.1.3",
+			want: &Device{
+				Family: "XiaoMi MI 4S",
+				Brand:  "XiaoMi",
+				Model:  "MI 4S",
 			},
 		},
 	}
