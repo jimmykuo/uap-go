@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-git submodule update
+cd uap-core
+git checkout v0.10.0
+cd ..
 
 # Strip out empty lines and comments for conciseness:
 # yaml=`cat uap-core/regexes.yaml | sed '/\s*#/d' | sed '/^\s*$/d'`
@@ -20,3 +22,7 @@ yaml=`sed "$insert_point r $custom" $src | sed '/\s*#/d' | sed '/^\s*$/d' | sed 
 # Build and format a Go file including our sources:
 echo "package uaparser
 var definitionYaml = []byte(\`$yaml\`)" | gofmt > uaparser/yaml.go
+
+# make sure uaparser is ok
+cd uaparser
+go build
